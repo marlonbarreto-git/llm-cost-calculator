@@ -2,6 +2,9 @@
 
 from dataclasses import dataclass
 
+TOKENS_PER_MILLION = 1_000_000
+
+# Prices in USD per 1M tokens
 PRICING: dict[str, dict[str, float]] = {
     "gpt-4o": {"input": 2.50, "output": 10.00},
     "gpt-4o-mini": {"input": 0.15, "output": 0.60},
@@ -15,6 +18,8 @@ PRICING: dict[str, dict[str, float]] = {
 
 @dataclass
 class CostBreakdown:
+    """Itemized cost breakdown for a single LLM API call."""
+
     model: str
     input_tokens: int
     output_tokens: int
@@ -23,20 +28,32 @@ class CostBreakdown:
 
     @property
     def total_cost(self) -> float:
+        """Returns combined input and output cost."""
         return self.input_cost + self.output_cost
 
     @property
     def total_tokens(self) -> int:
+        """Returns combined input and output token count."""
         return self.input_tokens + self.output_tokens
 
 
 def calculate_cost(model: str, input_tokens: int, output_tokens: int) -> CostBreakdown:
+    """Calculates the cost for a given model and token usage.
+
+    Args:
+        model: LLM model identifier (must exist in PRICING).
+        input_tokens: Number of input/prompt tokens.
+        output_tokens: Number of output/completion tokens.
+
+    Raises:
+        ValueError: If the model is not in the pricing table.
+    """
     if model not in PRICING:
         raise ValueError(f"Unknown model: {model}. Available: {list(PRICING.keys())}")
 
     prices = PRICING[model]
-    input_cost = (input_tokens / 1_000_000) * prices["input"]
-    output_cost = (output_tokens / 1_000_000) * prices["output"]
+    input_cost = (input_tokens / TOKENS_PER_MILLION) * prices["input"]
+    output_cost = (output_tokens / TOKENS_PER_MILLION) * prices["output"]
 
     return CostBreakdown(
         model=model,
@@ -48,4 +65,5 @@ def calculate_cost(model: str, input_tokens: int, output_tokens: int) -> CostBre
 
 
 def get_supported_models() -> list[str]:
+    """Returns the list of model names with known pricing."""
     return list(PRICING.keys())

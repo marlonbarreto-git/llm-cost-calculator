@@ -7,9 +7,13 @@ from pathlib import Path
 
 from llm_cost_calculator.pricing import CostBreakdown, calculate_cost
 
+DEFAULT_RECENT_LIMIT = 10
+
 
 @dataclass
 class UsageRecord:
+    """A single persisted usage record retrieved from the database."""
+
     id: int
     timestamp: str
     model: str
@@ -23,6 +27,8 @@ class UsageRecord:
 
 @dataclass
 class UsageSummary:
+    """Aggregate statistics across all recorded usage."""
+
     total_cost: float
     total_input_tokens: int
     total_output_tokens: int
@@ -31,12 +37,19 @@ class UsageSummary:
 
 
 class UsageTracker:
-    def __init__(self, db_path: str | Path = ":memory:"):
+    """Tracks LLM API usage costs in a SQLite database."""
+
+    def __init__(self, db_path: str | Path = ":memory:") -> None:
+        """Initializes the tracker with a SQLite database.
+
+        Args:
+            db_path: Path to the SQLite file, or ":memory:" for in-memory storage.
+        """
         self._conn = sqlite3.connect(str(db_path))
         self._conn.row_factory = sqlite3.Row
         self._create_tables()
 
-    def _create_tables(self):
+    def _create_tables(self) -> None:
         self._conn.execute("""
             CREATE TABLE IF NOT EXISTS usage (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -59,6 +72,17 @@ class UsageTracker:
         output_tokens: int,
         endpoint: str | None = None,
     ) -> CostBreakdown:
+        """Records a single LLM API call and returns its cost breakdown.
+
+        Args:
+            model: LLM model identifier.
+            input_tokens: Number of input tokens consumed.
+            output_tokens: Number of output tokens produced.
+            endpoint: Optional API endpoint that originated the call.
+
+        Raises:
+            ValueError: If the model is not recognized.
+        """
         cost = calculate_cost(model, input_tokens, output_tokens)
         now = datetime.now(timezone.utc).isoformat()
 
@@ -73,6 +97,7 @@ class UsageTracker:
         return cost
 
     def get_summary(self) -> UsageSummary:
+        """Returns aggregate cost and token statistics across all records."""
         row = self._conn.execute(
             """SELECT
                 COALESCE(SUM(total_cost), 0) as total_cost,
@@ -96,7 +121,12 @@ class UsageTracker:
             by_model=by_model,
         )
 
-    def get_recent(self, limit: int = 10) -> list[UsageRecord]:
+    def get_recent(self, limit: int = DEFAULT_RECENT_LIMIT) -> list[UsageRecord]:
+        """Returns the most recent usage records in descending order.
+
+        Args:
+            limit: Maximum number of records to return.
+        """
         rows = self._conn.execute(
             "SELECT * FROM usage ORDER BY id DESC LIMIT ?", (limit,)
         ).fetchall()
@@ -116,5 +146,6 @@ class UsageTracker:
             for r in rows
         ]
 
-    def close(self):
+    def close(self) -> None:
+        """Closes the underlying database connection."""
         self._conn.close()
