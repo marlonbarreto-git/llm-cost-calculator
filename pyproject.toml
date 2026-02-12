@@ -2,6 +2,14 @@
 name = "llm-cost-calculator"
 version = "0.1.0"
 description = "Service that tracks and optimizes LLM API costs with per-model analytics and budget alerts."
+license = {text = "MIT"}
+authors = [{name = "Marlon Barreto", email = "mbarretot@hotmail.com"}]
+keywords = ["LLM", "cost-optimization", "AI", "token-tracking"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "License :: OSI Approved :: MIT License",
+]
 requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.115.0",
@@ -10,6 +18,11 @@ dependencies = [
     "pydantic-settings>=2.7.0",
     "rich>=13.9.0",
 ]
+
+[project.urls]
+Homepage = "https://github.com/marlonbarreto-git/llm-cost-calculator"
+Repository = "https://github.com/marlonbarreto-git/llm-cost-calculator"
+Issues = "https://github.com/marlonbarreto-git/llm-cost-calculator/issues"
 
 [project.optional-dependencies]
 dev = [
