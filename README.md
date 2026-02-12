@@ -1,78 +1,82 @@
-# llm-cost-calculator
+# LLM Cost Calculator
 
-Service that tracks and optimizes LLM API costs. Log every API call, monitor spending by model, and get per-request cost breakdowns.
+API service that tracks and optimizes LLM API costs with per-model analytics.
 
-## Features
+## Overview
 
-- **Cost tracking**: Record token usage and calculate costs per request
-- **Multi-model pricing**: Supports GPT-4o, GPT-4o-mini, Claude Opus/Sonnet/Haiku
-- **SQLite storage**: Persistent usage history with zero infrastructure
-- **REST API**: FastAPI endpoints for tracking, summaries, and recent usage
-- **Per-endpoint attribution**: Track which API endpoints generate the most cost
+LLM Cost Calculator provides a FastAPI service for recording LLM API usage, calculating costs based on up-to-date per-model pricing, and querying usage summaries. It stores all usage records in SQLite and supports models from OpenAI (GPT-4o, GPT-4o-mini, GPT-4-turbo, GPT-3.5-turbo) and Anthropic (Claude Opus, Sonnet, Haiku).
 
 ## Architecture
 
 ```
-llm_cost_calculator/
-├── pricing.py    # Token pricing per model, cost calculation
-├── tracker.py    # SQLite-backed usage tracker
-└── api.py        # FastAPI endpoints (/track, /summary, /recent, /models)
+HTTP Request (model, input_tokens, output_tokens)
+  |
+  v
+FastAPI Router
+  |
+  +---> POST /track     ---> UsageTracker.record()
+  +---> GET  /summary   ---> UsageTracker.get_summary()
+  +---> GET  /recent    ---> UsageTracker.get_recent()
+  +---> GET  /models    ---> Pricing.get_supported_models()
+  |
+  v
+Pricing Engine (per-model $/1M tokens)
+  |
+  v
+SQLite Storage (usage table)
+  |
+  v
+JSON Response (cost breakdown / summary)
 ```
+
+## Features
+
+- Track LLM API usage with per-request cost calculation
+- Pricing data for 7 OpenAI and Anthropic models
+- Usage summary with per-model cost aggregation
+- Recent usage history with configurable limits
+- SQLite-backed persistent storage (in-memory by default)
+- Per-endpoint attribution for cost analysis
+
+## Tech Stack
+
+- Python 3.11+
+- FastAPI + Uvicorn
+- SQLite (via stdlib sqlite3)
+- Pydantic
+- Rich
 
 ## Quick Start
 
 ```bash
-uv sync
-
-# Run server
+git clone https://github.com/marlonbarreto-git/llm-cost-calculator.git
+cd llm-cost-calculator
+python -m venv .venv && source .venv/bin/activate
+pip install -e ".[dev]"
 uvicorn llm_cost_calculator.api:app --reload
-
-# Track usage
-curl -X POST http://localhost:8000/track \
-  -H "Content-Type: application/json" \
-  -d '{"model": "gpt-4o-mini", "input_tokens": 1000, "output_tokens": 500}'
-
-# Get cost summary
-curl http://localhost:8000/summary
-
-# Recent requests
-curl http://localhost:8000/recent?limit=10
-
-# List supported models
-curl http://localhost:8000/models
 ```
 
-## API Endpoints
+## Project Structure
 
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/health` | Health check |
-| POST | `/track` | Record token usage and get cost |
-| GET | `/summary` | Total cost, tokens, and breakdown by model |
-| GET | `/recent` | Recent usage records |
-| GET | `/models` | List supported models with pricing |
+```
+src/llm_cost_calculator/
+  __init__.py
+  api.py        # FastAPI app with /track, /summary, /recent, /models
+  pricing.py    # Per-model pricing data and cost calculation
+  tracker.py    # SQLite-backed usage recording and querying
+tests/
+  test_api.py
+  test_pricing.py
+  test_tracker.py
+```
 
-## Supported Models & Pricing
-
-| Model | Input ($/1M tokens) | Output ($/1M tokens) |
-|-------|---------------------|----------------------|
-| gpt-4o | $2.50 | $10.00 |
-| gpt-4o-mini | $0.15 | $0.60 |
-| claude-opus-4 | $15.00 | $75.00 |
-| claude-sonnet-4.5 | $3.00 | $15.00 |
-| claude-haiku-4.5 | $0.80 | $4.00 |
-
-## Development
+## Testing
 
 ```bash
-uv sync --all-extras
-uv run pytest tests/ -v
+pytest -v --cov=src/llm_cost_calculator
 ```
 
-## Roadmap
-
-- **v2**: Web dashboard with cost graphs, budget alerts
-- **v3**: Auto model recommendations, prompt caching analysis
+23 tests covering API endpoints, pricing calculations, and usage tracking with SQLite.
 
 ## License
 
