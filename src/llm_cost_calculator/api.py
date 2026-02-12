@@ -1,5 +1,7 @@
 """FastAPI application for LLM cost tracking."""
 
+from typing import Any
+
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
@@ -28,13 +30,13 @@ class UsageRequest(BaseModel):
 
 
 @app.get("/health")
-async def health() -> dict:
+async def health() -> dict[str, str]:
     """Returns service health status and version."""
     return {"status": "healthy", "version": __version__}
 
 
 @app.post("/track")
-async def track_usage(request: UsageRequest) -> dict:
+async def track_usage(request: UsageRequest) -> dict[str, Any]:
     """Records token usage for an LLM call and returns the cost breakdown."""
     try:
         cost = tracker.record(
@@ -55,7 +57,7 @@ async def track_usage(request: UsageRequest) -> dict:
 
 
 @app.get("/summary")
-async def get_summary() -> dict:
+async def get_summary() -> dict[str, Any]:
     """Returns aggregate cost and token statistics."""
     summary = tracker.get_summary()
     return {
@@ -68,7 +70,7 @@ async def get_summary() -> dict:
 
 
 @app.get("/recent")
-async def get_recent(limit: int = DEFAULT_RECENT_LIMIT) -> list[dict]:
+async def get_recent(limit: int = DEFAULT_RECENT_LIMIT) -> list[dict[str, Any]]:
     """Returns the most recent usage records."""
     records = tracker.get_recent(limit=limit)
     return [
@@ -86,6 +88,6 @@ async def get_recent(limit: int = DEFAULT_RECENT_LIMIT) -> list[dict]:
 
 
 @app.get("/models")
-async def list_models() -> dict:
+async def list_models() -> dict[str, list[str]]:
     """Returns all models with known pricing."""
     return {"models": get_supported_models()}
